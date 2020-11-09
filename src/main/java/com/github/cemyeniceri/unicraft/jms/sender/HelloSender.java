@@ -2,6 +2,7 @@ package com.github.cemyeniceri.unicraft.jms.sender;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.cemyeniceri.unicraft.jms.config.JmsConfig;
 import com.github.cemyeniceri.unicraft.jms.model.HelloWorldMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jms.core.JmsTemplate;
@@ -12,29 +13,23 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import java.util.UUID;
 
-import static com.github.cemyeniceri.unicraft.jms.config.JmsConfig.MY_QUEUE;
-import static com.github.cemyeniceri.unicraft.jms.config.JmsConfig.MY_SEND_RCV_QUEUE;
-
-@Component
 @RequiredArgsConstructor
+@Component
 public class HelloSender {
 
     private final JmsTemplate jmsTemplate;
     private final ObjectMapper objectMapper;
 
     @Scheduled(fixedRate = 2000)
-    public void sendMessage() {
-        //System.out.println("I am sending a message");
+    public void sendMessage(){
 
         HelloWorldMessage message = HelloWorldMessage
                 .builder()
                 .id(UUID.randomUUID())
-                .message("Hello World")
+                .message("Hello World!")
                 .build();
 
-        jmsTemplate.convertAndSend(MY_QUEUE, message);
-
-        //System.out.println("Message Sent!");
+        jmsTemplate.convertAndSend(JmsConfig.MY_QUEUE, message);
 
     }
 
@@ -47,14 +42,17 @@ public class HelloSender {
                 .message("Hello")
                 .build();
 
-        Message receivedMsg = jmsTemplate.sendAndReceive(MY_SEND_RCV_QUEUE, session -> {
-            Message helloMessage = null;
+        Message receivedMsg = jmsTemplate.sendAndReceive(JmsConfig.MY_SEND_RCV_QUEUE, session -> {
+            Message helloMessage;
+
             try {
                 helloMessage = session.createTextMessage(objectMapper.writeValueAsString(message));
-                helloMessage.setStringProperty("_type", "guru.springframework.sfgjms.model.HelloWorldMessage");
+                helloMessage.setStringProperty("_type", "com.github.cemyeniceri.unicraft.jms.model.HelloWorldMessage");
 
                 System.out.println("Sending Hello");
+
                 return helloMessage;
+
             } catch (JsonProcessingException e) {
                 throw new JMSException("boom");
             }
@@ -62,4 +60,5 @@ public class HelloSender {
 
         System.out.println(receivedMsg.getBody(String.class));
     }
+
 }
